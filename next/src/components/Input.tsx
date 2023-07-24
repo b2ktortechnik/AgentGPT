@@ -1,6 +1,7 @@
-import React from "react";
-import Label from "./Label";
 import clsx from "clsx";
+import React from "react";
+
+import Label from "./Label";
 import type { toolTipProperties } from "../types";
 
 interface InputProps {
@@ -85,12 +86,7 @@ const Input = (props: InputProps) => {
   }
 
   return (
-    <div
-      className={clsx(
-        "items-left z-5 text-color-primary flex h-fit w-full flex-col rounded-xl font-mono text-lg md:flex-row md:items-center",
-        "md:flex-row md:items-center"
-      )}
-    >
+    <div className="items-left z-5 text-color-primary flex h-fit w-full flex-col rounded-xl font-mono text-lg md:flex-row md:items-center">
       {left && <Label left={left} type={type} toolTipProperties={toolTipProperties} />}
       {inputElement}
     </div>

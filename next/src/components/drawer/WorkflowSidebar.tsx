@@ -1,18 +1,20 @@
-import type { DisplayProps } from "./Sidebar";
-import Sidebar from "./Sidebar";
+import clsx from "clsx";
 import React from "react";
 import { FaBars } from "react-icons/fa";
+import type { Edge, Node } from "reactflow";
+
+import type { DisplayProps } from "./Sidebar";
+import Sidebar from "./Sidebar";
+import type { createNodeType, updateNodeType } from "../../hooks/useWorkflow";
+import { findParents } from "../../services/graph-utils";
 import type { IOField, NodeBlockDefinition } from "../../services/workflow/node-block-definitions";
 import {
   getNodeBlockDefinitionFromNode,
   getNodeBlockDefinitions,
 } from "../../services/workflow/node-block-definitions";
-import type { createNodeType, updateNodeType } from "../../hooks/useWorkflow";
 import type { WorkflowEdge, WorkflowNode } from "../../types/workflow";
-import type { Edge, Node } from "reactflow";
-import TextButton from "../TextButton";
-import { findParents } from "../../services/graph-utils";
-import InputWithSuggestions from "../../ui/InputWithSuggestions";
+import WorkflowSidebarInput from "../../ui/WorkflowSidebarInput";
+import PrimaryButton from "../PrimaryButton";
 
 type WorkflowControls = {
   selectedNode: Node<WorkflowNode> | undefined;
@@ -40,16 +42,32 @@ const WorkflowSidebar = ({ show, setShow, controls }: WorkflowSidebarProps) => {
 
   return (
     <Sidebar show={show} setShow={setShow} side="right">
-      <div className="text-color-primary flex h-screen flex-col gap-2">
+      <div className="text-color-primary mx-2 flex h-screen flex-col gap-2">
         <div className="flex flex-row items-center gap-1">
           <button
             className="neutral-button-primary rounded-md border-none transition-all"
             onClick={() => setShow(!show)}
           >
-            <FaBars size="15" className="z-20 m-2" />
+            <FaBars size="15" className="z-20 mr-2" />
           </button>
-          <TextButton onClick={() => setTab("inspect")}>Inspect</TextButton>
-          <TextButton onClick={() => setTab("create")}>Create</TextButton>
+          <div className="rounded-full bg-white/10 p-0.5">
+            <PrimaryButton
+              className={clsx(
+                tab != "inspect" && "border-transparent bg-white/0 text-white hover:text-black"
+              )}
+              onClick={() => setTab("inspect")}
+            >
+              Inspect
+            </PrimaryButton>
+            <PrimaryButton
+              className={clsx(
+                tab != "create" && "border-transparent bg-white/0 text-white hover:text-black"
+              )}
+              onClick={() => setTab("create")}
+            >
+              Create
+            </PrimaryButton>
+          </div>
           <div />
         </div>
         {tab === "inspect" && <InspectSection {...controls} />}
@@ -68,7 +86,11 @@ type InspectSectionProps = {
 
 const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSectionProps) => {
   if (selectedNode == undefined)
-    return <div>No components selected. Click on a component to select it</div>;
+    return (
+      <div className="text-sm font-light">
+        No components selected. Click on a component to select it
+      </div>
+    );
 
   const definition = getNodeBlockDefinitionFromNode(selectedNode);
 
@@ -85,8 +107,8 @@ const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSecti
     const outputFields = definition.output_fields;
     return outputFields.map((outputField) => {
       return {
-        key: `${ancestorNode.id}-${outputField.name}`,
-        value: `${definition.type}-${outputField.name}`,
+        key: `{{${ancestorNode.id}.${outputField.name}}}`,
+        value: `${definition.type}.${outputField.name}`,
       };
     });
   });
@@ -104,18 +126,37 @@ const InspectSection = ({ selectedNode, updateNode, nodes, edges }: InspectSecti
         <p className="text-lg font-bold">{definition?.type}</p>
         <p className="mb-3 text-sm font-thin">{definition?.description}</p>
       </div>
-      {definition?.input_fields.map((inputField) => (
+      <hr className="border-neutral-500" />
+      <div className="font-bold">Inputs</div>
+      {definition?.input_fields.map((inputField: IOField) => (
         <div key={definition?.type + inputField.name}>
-          <InputWithSuggestions
-            label={inputField.name}
-            name={inputField.name}
-            helpText={inputField.description}
+          <WorkflowSidebarInput
+            inputField={inputField}
             value={selectedNode.data.block.input[inputField.name] || ""}
-            onChange={(e) => handleValueChange(inputField.name, e.target.value)}
+            onChange={(val) => handleValueChange(inputField.name, val)}
             suggestions={outputFields}
           />
         </div>
       ))}
+      {definition?.input_fields.length == 0 && (
+        <p className="text-sm font-thin">This node does not take any input.</p>
+      )}
+      <hr className="border-neutral-500" />
+      <div className="font-bold">Outputs</div>
+      <div className="flex flex-col gap-2">
+        {definition?.output_fields.map((outputField: IOField) => (
+          <div key={definition?.type + outputField.name}>
+            <p>
+              <span className="text-sm font-bold">{outputField.name}:</span>{" "}
+              <span className="text-sm">{outputField.type}</span>
+            </p>
+            <p className="text-sm font-thin">{outputField.description}</p>
+          </div>
+        ))}
+        {definition?.output_fields.length == 0 && (
+          <p className="text-sm font-thin">This node does not have any output.</p>
+        )}
+      </div>
     </>
   );
 };
@@ -145,7 +186,7 @@ type NodeBlockProps = {
 const NodeBlock = ({ definition, createNode }: NodeBlockProps) => {
   return (
     <div
-      className="flex cursor-pointer flex-row gap-2 rounded-md border border-white/20 p-2 hover:bg-white/10"
+      className="flex cursor-pointer flex-col gap-2 rounded-md border border-white/20 p-2 hover:bg-white/10 "
       onClick={() => {
         const input: Record<string, string> = {};
         for (const field of definition.input_fields) {
@@ -155,13 +196,11 @@ const NodeBlock = ({ definition, createNode }: NodeBlockProps) => {
         createNode({ input: input, type: definition.type });
       }}
     >
-      <div className="h-[30px] w-[30px]">
-        <img src={definition.image_url} alt={definition.type} width={30} />
-      </div>
-      <div>
+      <div className="flex items-center gap-2">
+        <definition.icon size={17} />
         <h3 className="font-medium">{definition.type}</h3>
-        <p className="text-sm font-thin">{definition.description}</p>
       </div>
+      <p className="text-sm font-thin">{definition.description}</p>
     </div>
   );
 };

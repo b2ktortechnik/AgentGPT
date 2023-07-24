@@ -1,3 +1,4 @@
+import type { ComponentProps, MouseEvent } from "react";
 import { type FC, useCallback } from "react";
 import type { Connection, EdgeChange, FitViewOptions, NodeChange } from "reactflow";
 import ReactFlow, {
@@ -11,12 +12,15 @@ import ReactFlow, {
 } from "reactflow";
 
 import "reactflow/dist/style.css";
-import CustomNode from "./BasicNode";
+
 import CustomEdge from "./BasicEdge";
+import { BasicNode, IfNode, TriggerNode } from "./nodes";
 import type { EdgesModel, NodesModel } from "../../types/workflow";
 
 const nodeTypes = {
-  custom: CustomNode,
+  if: IfNode,
+  custom: BasicNode,
+  trigger: TriggerNode,
 };
 
 const edgeTypes = {
@@ -27,8 +31,8 @@ const fitViewOptions: FitViewOptions = {
   padding: 0.2,
 };
 
-interface FlowChartProps extends React.ComponentProps<typeof ReactFlow> {
-  onSave?: (e: React.MouseEvent<HTMLButtonElement>) => Promise<void>;
+interface FlowChartProps extends ComponentProps<typeof ReactFlow> {
+  onSave?: (e: MouseEvent<HTMLButtonElement>) => Promise<void>;
   controls?: boolean;
   minimap?: boolean;
 
@@ -77,9 +81,15 @@ const FlowChart: FC<FlowChartProps> = ({
       fitViewOptions={fitViewOptions}
       {...props}
     >
+      <Background
+        variant={BackgroundVariant.Lines}
+        lineWidth={1}
+        gap={80}
+        className="bg-neutral-800"
+        color="#FFFFFF10"
+      />
       {props.minimap && <MiniMap nodeStrokeWidth={3} />}
       {props.controls && <Controls />}
-      <Background variant={BackgroundVariant.Lines} lineWidth={0} />
     </ReactFlow>
   );
 };

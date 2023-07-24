@@ -1,55 +1,78 @@
-import type { GetStaticProps, NextPage } from "next";
 import { useQuery } from "@tanstack/react-query";
+import { LayoutGroup } from "framer-motion";
+import type { GetStaticProps, NextPage } from "next";
 import { useRouter } from "next/router";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useState } from "react";
+
+import nextI18NextConfig from "../../../next-i18next.config";
+import EmptyWorkflowButton from "../../components/workflow/EmptyWorkflow";
+import WorkflowCard, { WorkflowCardDialog } from "../../components/workflow/WorkflowCard";
+import { useAuth } from "../../hooks/useAuth";
+import DashboardLayout from "../../layout/dashboard";
+import type { WorkflowMeta } from "../../services/workflow/workflowApi";
 import WorkflowApi from "../../services/workflow/workflowApi";
 import { languages } from "../../utils/languages";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
-import nextI18NextConfig from "../../../next-i18next.config";
-import DashboardLayout from "../../layout/dashboard";
-import EmptyWorkflowButton from "../../components/workflow/EmptyWorkflow";
-import { useAuth } from "../../hooks/useAuth";
 
 const WorkflowList: NextPage = () => {
-  const { session } = useAuth({ protectedRoute: true });
-  const router = useRouter();
+  const { session } = useAuth({ protectedRoute: true, isAllowed: (s) => s.user.superAdmin });
 
-  const api = new WorkflowApi(session?.accessToken);
+  const router = useRouter();
+  const org = session?.user?.organizations?.at(0)?.id;
+  const api = new WorkflowApi(session?.accessToken, org);
   const query = useQuery(["workflows"], async () => await api.getAll(), {
     enabled: !!session,
   });
 
   const data = query.data ?? [];
+  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowMeta | null>(null);
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-4 gap-2 p-16">
-        {data.map((workflow) => (
-          <div
-            key={workflow.id}
-            className="flex flex-col gap-3 rounded-2xl bg-gray-50 p-6"
+      <LayoutGroup>
+        <div className="grid grid-cols-2 gap-5 p-8 sm:grid-cols-3 lg:sm:grid-cols-4">
+          {data.map((workflow) => (
+            <WorkflowCard
+              key={workflow.id}
+              workflow={workflow}
+              onClick={() => {
+                setSelectedWorkflow(workflow);
+              }}
+            />
+          ))}
+          <EmptyWorkflowButton
             onClick={() => {
-              void router.push(`workflow/${workflow.id}`);
+              api
+                .create({
+                  name: "New Workflow",
+                  description: "New Workflow",
+                })
+                .then((workflow) => {
+                  void router.push(`workflow/${workflow.id}`);
+                })
+                .catch(console.error);
             }}
-          >
-            <h1>{workflow.name}</h1>
-            <h1>#{workflow.id}</h1>
-            <p className="text-neutral-400">{workflow.description}</p>
-          </div>
-        ))}
-        <EmptyWorkflowButton
-          onClick={() => {
-            api
-              .create({
-                name: "New Workflow",
-                description: "New Workflow",
-              })
-              .then((workflow) => {
-                void router.push(`workflow/${workflow.id}`);
-              })
-              .catch(console.error);
-          }}
-        />
-      </div>
+          />
+        </div>
+        {selectedWorkflow != null && (
+          <WorkflowCardDialog
+            workflow={selectedWorkflow}
+            onEdit={() => {
+              void router.push(`workflow/${selectedWorkflow.id}`);
+            }}
+            onDelete={() => {
+              api
+                .delete(selectedWorkflow.id)
+                .then(async () => {
+                  await query.refetch();
+                  setSelectedWorkflow(null);
+                })
+                .catch(console.error);
+            }}
+            onClose={() => void setSelectedWorkflow(null)}
+          />
+        )}
+      </LayoutGroup>
     </DashboardLayout>
   );
 };

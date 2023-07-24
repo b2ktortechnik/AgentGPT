@@ -1,8 +1,8 @@
-import { FaBars } from "react-icons/fa";
-import type { ReactNode } from "react";
-import { Fragment } from "react";
 import { Transition } from "@headlessui/react";
 import clsx from "clsx";
+import type { ReactNode } from "react";
+import { Fragment } from "react";
+import { FaBars } from "react-icons/fa";
 
 export type DisplayProps = {
   show: boolean;
@@ -17,7 +17,7 @@ export type SidebarProps = DisplayProps & {
 const Sidebar = ({ show, children, side }: SidebarProps) => {
   return (
     <SidebarTransition show={show} side={side}>
-      <nav className="background-color-1 flex flex-1 flex-col px-2.5 py-2 ring-1 ring-white/10">
+      <nav className="background-color-1 flex flex-1 flex-col overflow-x-hidden px-2.5 py-2 ring-1 ring-white/10">
         {children}
       </nav>
     </SidebarTransition>
