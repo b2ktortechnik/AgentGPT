@@ -15,6 +15,7 @@ from reworkd_platform.schemas.workflow.base import (
     Workflow,
     WorkflowFull,
     WorkflowUpdate,
+    WorkflowCreate,
 )
 from reworkd_platform.web.api.dependencies import get_current_user
 from reworkd_platform.web.api.http_responses import forbidden
@@ -35,17 +36,23 @@ class WorkflowCRUD(BaseCrud):
         return WorkflowCRUD(session, user)
 
     async def get_all(self) -> List[Workflow]:
-        query = select(WorkflowModel).where(
-            and_(
+        query = (
+            select(WorkflowModel)
+            .where(
                 or_(
-                    WorkflowModel.user_id == self.user.id,
+                    and_(
+                        WorkflowModel.user_id == self.user.id,
+                        WorkflowModel.organization_id.is_(None),
+                        WorkflowModel.delete_date.is_(None),
+                    ),
                     and_(
                         WorkflowModel.organization_id == self.user.organization_id,
                         WorkflowModel.organization_id.is_not(None),
+                        WorkflowModel.delete_date.is_(None),
                     ),
-                ),
-                WorkflowModel.delete_date.is_(None),
+                )
             )
+            .order_by(WorkflowModel.create_date.desc())
         )
 
         return [
@@ -76,13 +83,13 @@ class WorkflowCRUD(BaseCrud):
             edges=[edge.to_schema() for edge in edges.values()],
         )
 
-    async def create(self, name: str, description: str) -> Workflow:
+    async def create(self, workflow_create: WorkflowCreate) -> Workflow:
         return (
             await WorkflowModel(
                 user_id=self.user.id,
                 organization_id=self.user.organization_id,
-                name=name,
-                description=description,
+                name=workflow_create.name,
+                description=workflow_create.description,
             ).save(self.session)
         ).to_schema()
 

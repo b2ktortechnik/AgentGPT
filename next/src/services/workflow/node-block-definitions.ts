@@ -1,7 +1,10 @@
 import type { IconType } from "react-icons";
 import {
+  FaBolt,
+  FaBook,
   FaCodeBranch,
   FaCopy,
+  FaFileUpload,
   FaGlobeAmericas,
   FaPlay,
   FaRobot,
@@ -16,7 +19,7 @@ import type { WorkflowNode } from "../../types/workflow";
 const IOFieldSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
-  type: z.enum(["string", "array", "enum"]),
+  type: z.enum(["string", "array", "enum", "file", "oauth", "button"]),
   items: z.object({ type: z.string() }).optional(),
   enum: z.array(z.string()).optional(),
 });
@@ -31,9 +34,16 @@ export const NodeBlockDefinitionSchema = z.object({
   input_fields: z.array(IOFieldSchema),
   output_fields: z.array(IOFieldSchema),
   icon: z.custom<IconType>(),
+  color: z.string().optional(),
 });
 
 export type NodeBlockDefinition = z.infer<typeof NodeBlockDefinitionSchema>;
+
+const colorTypes = {
+  trigger: "bg-purple-500",
+  output: "bg-green-500",
+  agent: "bg-blue-500",
+};
 
 const UrlStatusCheckBlockDefinition: NodeBlockDefinition = {
   name: "URL Status Check",
@@ -63,16 +73,17 @@ const UrlStatusCheckBlockDefinition: NodeBlockDefinition = {
 };
 
 const SlackWebhookBlockDefinition: NodeBlockDefinition = {
-  name: "Slack Message Webhook",
+  name: "Slack Message",
   type: "SlackWebhook",
   description: "Sends a message to a slack webhook",
   image_url: "/tools/web.png",
   icon: FaSlack,
+  color: colorTypes.output,
   input_fields: [
     {
       name: "url",
       description: "The Slack WebHook URL",
-      type: "string",
+      type: "oauth",
     },
     {
       name: "message",
@@ -89,21 +100,69 @@ const SlackWebhookBlockDefinition: NodeBlockDefinition = {
   ],
 };
 
-const SummaryWebhookBlockDefinition: NodeBlockDefinition = {
-  name: "Summary Agent",
-  type: "SummaryWebhook",
-  description: "Summarize or extract key details from text using OpenAI",
+const CompanyContextAgentBlockDefinition: NodeBlockDefinition = {
+  name: "Company Context Agent",
+  type: "CompanyContextAgent",
+  description: "Retrieve market, industry, and product summary of a specific company",
   image_url: "/tools/web.png",
   icon: FaCopy,
+  color: colorTypes.agent,
+  input_fields: [
+    {
+      name: "company_name",
+      description: "enter name of company",
+      type: "string",
+    },
+  ],
+  output_fields: [
+    {
+      name: "result",
+      description: "The result was built.",
+      type: "string",
+    },
+  ],
+};
+
+const GenericLLMAgentBlockDefinition: NodeBlockDefinition = {
+  name: "Generic LLM Agent",
+  type: "GenericLLMAgent",
+  description: "OpenAI agent",
+  image_url: "/tools/web.png",
+  icon: FaCopy,
+  color: colorTypes.agent,
   input_fields: [
     {
       name: "prompt",
-      description: "What do you want to do with the text?",
+      description: "Enter a prompt",
       type: "string",
     },
+  ],
+  output_fields: [
     {
-      name: "filename",
-      description: "reference a file that you want to summarize",
+      name: "result",
+      description: "The result was built.",
+      type: "string",
+    },
+  ],
+};
+
+const SummaryAgentBlockDefinition: NodeBlockDefinition = {
+  name: "Summary Agent",
+  type: "SummaryAgent",
+  description:
+    "Summarize and extract key market insights for specific companies and industries from documents",
+  image_url: "/tools/web.png",
+  icon: FaCopy,
+  color: colorTypes.agent,
+  input_fields: [
+    {
+      name: "chat",
+      description: "chat with your PDF",
+      type: "button",
+    },
+    {
+      name: "company_context",
+      description: "short description on company, market, and their core products",
       type: "string",
     },
   ],
@@ -125,7 +184,7 @@ const TextInputWebhookBlockDefinition: NodeBlockDefinition = {
   input_fields: [
     {
       name: "text",
-      description: "What text would you like to extract information from?",
+      description: "Enter text",
       type: "string",
     },
   ],
@@ -133,6 +192,56 @@ const TextInputWebhookBlockDefinition: NodeBlockDefinition = {
     {
       name: "result",
       description: "The result was built.",
+      type: "string",
+    },
+  ],
+};
+
+const UploadDocBlockDefinition: NodeBlockDefinition = {
+  name: "Upload Doc",
+  type: "UploadDoc",
+  description: "Securely upload a .docx to Amazon S3",
+  image_url: "/tools/web.png",
+  icon: FaBook,
+  input_fields: [
+    {
+      name: "text",
+      description: "The text to upload",
+      type: "string",
+    },
+  ],
+  output_fields: [
+    {
+      name: "file_url",
+      description: "The URL to access the doc",
+      type: "string",
+    },
+  ],
+};
+
+const DiffDocBlockDefinition: NodeBlockDefinition = {
+  name: "Diff Doc",
+  type: "DiffDoc",
+  description:
+    "Create a document that will display the diff between an original and updated string",
+  image_url: "/tools/web.png",
+  icon: FaBook,
+  input_fields: [
+    {
+      name: "original",
+      description: "The original version of the text",
+      type: "string",
+    },
+    {
+      name: "updated",
+      description: "The updated version of the text",
+      type: "string",
+    },
+  ],
+  output_fields: [
+    {
+      name: "file_url",
+      description: "The URL to access the diff PDF.",
       type: "string",
     },
   ],
@@ -169,22 +278,41 @@ const IfBlockDefinition: NodeBlockDefinition = {
   ],
 };
 
-const TriggerBlockDefinition: NodeBlockDefinition = {
+const APITriggerBlockDefinition: NodeBlockDefinition = {
+  name: "APITrigger",
+  type: "APITriggerBlock",
+  description: "Trigger a workflow through an API call.",
+  icon: FaBolt,
+  color: colorTypes.trigger,
+  image_url: "/tools/web.png",
+  input_fields: [],
+  output_fields: [
+    {
+      name: "message",
+      description: "Input string to the API call",
+      type: "string",
+    },
+  ],
+};
+
+const ManualTriggerBlockDefinition: NodeBlockDefinition = {
   name: "Manual Trigger",
   type: "ManualTriggerBlock",
   description: "Trigger a block manually",
   icon: FaPlay,
+  color: colorTypes.trigger,
   image_url: "/tools/web.png",
   input_fields: [],
   output_fields: [],
 };
 
-const WebInteractionAgent: NodeBlockDefinition = {
+const WebInteractionAgentBlockDefinition: NodeBlockDefinition = {
   name: "Web Interaction Agent",
   type: "WebInteractionAgent",
   description: "Dynamically interact with a website",
   image_url: "/tools/web.png",
   icon: FaRobot,
+  color: colorTypes.agent,
   input_fields: [
     {
       name: "url",
@@ -200,15 +328,76 @@ const WebInteractionAgent: NodeBlockDefinition = {
   output_fields: [],
 };
 
+const FileUploadBlockDefinition: NodeBlockDefinition = {
+  name: "File Upload",
+  type: "FileUploadBlock",
+  description: "Upload a file",
+  icon: FaFileUpload,
+  image_url: "/tools/web.png",
+  input_fields: [
+    {
+      name: "file",
+      description: "The file to upload",
+      type: "file",
+    },
+  ],
+  output_fields: [],
+};
+
+const ContentRefresherAgent: NodeBlockDefinition = {
+  name: "Content Refresher Agent",
+  type: "ContentRefresherAgent",
+  description: "Refresh the content on an existing page",
+  image_url: "/tools/web.png",
+  icon: FaRobot,
+  color: colorTypes.agent,
+  input_fields: [
+    {
+      name: "url",
+      description: "The page whose content the agent will refresh",
+      type: "string",
+    },
+    {
+      name: "competitors",
+      description: "Competitors you don't want to pull content from",
+      type: "string",
+    },
+  ],
+  output_fields: [
+    {
+      name: "original_report",
+      description: "The original content of the page",
+      type: "string",
+    },
+    {
+      name: "refreshed_report",
+      description: "The refreshed content for the page",
+      type: "string",
+    },
+    {
+      name: "refreshed_bullet_points",
+      description: "The refreshed bullet points for the page",
+      type: "string",
+    },
+  ],
+};
+
 export const getNodeBlockDefinitions = (): NodeBlockDefinition[] => {
   return [
-    UrlStatusCheckBlockDefinition,
+    ManualTriggerBlockDefinition,
+    APITriggerBlockDefinition,
     SlackWebhookBlockDefinition,
-    IfBlockDefinition,
-    WebInteractionAgent,
-    TriggerBlockDefinition,
-    SummaryWebhookBlockDefinition,
+    DiffDocBlockDefinition,
+    UploadDocBlockDefinition,
     TextInputWebhookBlockDefinition,
+    FileUploadBlockDefinition,
+    IfBlockDefinition,
+    UrlStatusCheckBlockDefinition,
+    WebInteractionAgentBlockDefinition,
+    ContentRefresherAgent,
+    GenericLLMAgentBlockDefinition,
+    SummaryAgentBlockDefinition,
+    CompanyContextAgentBlockDefinition,
   ];
 };
 

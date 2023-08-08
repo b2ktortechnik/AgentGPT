@@ -17,3 +17,18 @@ class OrganizationUser(TrackedModel):
     user_id = mapped_column(String, nullable=False)
     organization_id = mapped_column(String, nullable=False)
     role = mapped_column(String, nullable=False, default="member")
+
+
+class OauthCredentials(TrackedModel):
+    __tablename__ = "oauth_credentials"
+
+    user_id = mapped_column(String, nullable=False)
+    organization_id = mapped_column(String, nullable=True)
+    provider = mapped_column(String, nullable=False)
+    state = mapped_column(String, nullable=False)
+    redirect_uri = mapped_column(String, nullable=False)
+
+    # Post-installation
+    token_type = mapped_column(String, nullable=True)
+    access_token_enc = mapped_column(String, nullable=True)
+    scope = mapped_column(String, nullable=True)
