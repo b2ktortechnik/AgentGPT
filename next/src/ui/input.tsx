@@ -33,7 +33,7 @@ const Input = (props: Props) => {
       <div className="relative flex flex-col gap-1 rounded-md shadow-sm">
         {props.helpText && (
           <p
-            className="text-xs font-light text-gray-500 lg:text-sm"
+            className="text-color-secondary text-xs font-extralight lg:text-sm"
             id={`${props.name}-description`}
           >
             {props.helpText}
@@ -45,8 +45,7 @@ const Input = (props: Props) => {
             name={props.name}
             id={props.name}
             className={clsx(
-              "focus:outline-inset border-focusVisible-1 border-style-1 block w-full rounded-md bg-white p-1 font-inter text-black shadow-sm transition-colors sm:text-sm sm:leading-6",
-              props.disabled ? "cursor-not-allowed opacity-40" : "border-hover-1"
+              "text-color-primary background-color-7 placeholder:text-color-tertiary focus:outline-inset border-focusVisible-1 border-style-1 block w-full rounded-md p-1 shadow-sm transition-colors sm:text-sm sm:leading-6"
             )}
             placeholder={props.placeholder}
             value={props.value}
