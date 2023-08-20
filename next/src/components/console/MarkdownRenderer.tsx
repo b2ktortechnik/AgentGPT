@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import React, { useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import "highlight.js/styles/default.css";
 import clsx from "clsx";
 import { FiClipboard } from "react-icons/fi";
 
-const MarkdownRenderer = ({ children }) => {
+interface MarkdownRendererProps {
+  children: string;
+  className?: string;
+}
+
+const MarkdownRenderer = ({ children, className }: MarkdownRendererProps) => {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -20,7 +25,9 @@ const MarkdownRenderer = ({ children }) => {
         a: (props) => CustomLink({ children: props.children, href: props.href }),
         p: (props) => <p className="mb-4">{props.children}</p>,
         ul: (props) => (
-          <ul className="mb-4 ml-8 list-disc marker:text-neutral-400">{props.children}</ul>
+          <ul className={clsx("mb-4 list-disc marker:text-neutral-400", className)}>
+            {props.children}
+          </ul>
         ),
         ol: (props) => (
           <ol className="mb-4 ml-8 list-decimal marker:text-neutral-400">{props.children}</ol>
